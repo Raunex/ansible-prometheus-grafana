@@ -1,4 +1,4 @@
-# Playbook para implantação de um ambiente de monitoramento utilizando o Prometheus + Grafana + Alertmanager:
+# Projeto criado com o objetivo de utilizar o Ansible para provisionar toda infra estrutura de um ambiente de monitoramento utilizando o Prometheus + Grafana + Alertmanager utilizando o Docker.
 
 ## HOSTS
 Para executar essa playbook será necessário como primeiro passo ajustar o arquivo 'hosts' dentro do diretório "*inventory*" para informar qual será o servidor que a role executará as tarefas.
