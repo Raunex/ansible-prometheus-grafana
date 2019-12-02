@@ -1,0 +1,112 @@
+version: '3.3'
+
+networks:
+  prometheus:
+
+volumes:
+  prometheus:
+  alertmanager:
+  grafana:
+
+services:
+  prometheus:
+    image: prom/prometheus
+    hostname: prometheus
+    ports:
+      - 9090:9090
+    volumes:
+      - prometheus:/prometheus
+      - /targets/:/targets/
+      - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./configs/alert.rules:/etc/prometheus/rules/alert.rules
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.external-url=http://prometheus.domain.com.br'
+
+    networks:
+      - prometheus
+
+  alertmanager:
+    image: prom/alertmanager
+    hostname: alertmanager
+    ports:
+      - 9093:9093
+    volumes:
+      - alertmanager:/alertmanager
+      - ./configs/alertmanager.yml:/etc/alertmanager/config.yml
+    networks:
+      - prometheus
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://alertmanager.domain.com.br'
+    networks:
+      - prometheus
+    depends_on:
+      - prometheus
+  grafana:
+    image: grafana/grafana:latest
+    hostname: grafana
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana:/var/lib/grafana
+      - ./configs/ldap.toml:/etc/grafana/ldap.toml
+      - ./configs/grafana.ini:/etc/grafana/grafana.ini
+      - ./configs/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - ./configs/dashboard.yml:/etc/grafana/provisioning/dashboards/dashboard.yml
+      - ./configs/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=password
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SERVER_DOMAIN=grafana.domain.com.br
+      - GF_SERVER_ROOT_URL=http://grafana.domain
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,blackmirror1-statusbygroup-panel,farski-blendstat-panel
+
+    networks:
+      - prometheus
+  cadvisor:
+    image: google/cadvisor
+    hostname: cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - prometheus
+    depends_on:
+      - prometheus
+  node-exporter:
+    image: prom/node-exporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.ignored-mount-points="^(/rootfs|/host|)/(sys|proc|dev|host|etc)($$|/)"'
+      - '--collector.filesystem.ignored-fs-types="^(sys|proc|auto|cgroup|devpts|ns|au|fuse\.lxc|mqueue)(fs|)$$"'
+    environment:
+      HOST_HOSTNAME: /etc/hostname
+    networks:
+      - prometheus
+    depends_on:
+      - prometheus
+
+  ovirt-prometheus:
+    image: rmohr/ovirt-prometheus-bridge
+    hostname: ovirt-prometheus
+    volumes:
+      - /targets:/targets
+    command: ["-no-verify", "-engine-url=https://ovirt.domain", "-output=/targets/exporter.json"]
+    environment:
+      - ENGINE_PASSWORD=password
+    depends_on:
+     - prometheus
