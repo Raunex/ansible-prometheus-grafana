@@ -20,3 +20,4 @@ Na pasta **configs** estão todos os arquivos de configuração das aplicações
 
 A role **ipa-auth** é opcional caso utilize o FreeIPA como gerenciado de identidade e seu ambiente, você pode está utilizando essa role para cadastrar o servidor no FreeIPA.
 
+Criado por [Rauny Moreira](https://www.linkedin.com/in/rauny-moreira/).
